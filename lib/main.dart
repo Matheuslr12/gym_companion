@@ -1061,7 +1061,9 @@ class _WorkoutSelectorCard extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                color: selected ? Colors.black70 : const Color(0xFFB8B8B8),
+                color: selected
+                    ? Colors.black.withValues(alpha: 0.7)
+                    : const Color(0xFFB8B8B8),
               ),
             ),
           ],
