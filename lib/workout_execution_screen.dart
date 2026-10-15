@@ -80,7 +80,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         setState(() => _elapsed += const Duration(seconds: 1));
       }
     });
-    NotificationService.requestPermissions();
+    NotificationService.requestPermissions().then((_) {
+      if (mounted) _showActiveWorkoutNotification();
+    });
   }
 
   @override
@@ -677,6 +679,25 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   void _togglePause() {
     setState(() => _isPaused = !_isPaused);
+    if (_isPaused) {
+      NotificationService.showPausedWorkout(
+        exerciseName: _currentExercise.name,
+        elapsed: _elapsed,
+      );
+    } else if (_remainingSeconds > 0) {
+      NotificationService.showRestProgress(
+        exerciseName: _currentExercise.name,
+      );
+    } else {
+      _showActiveWorkoutNotification();
+    }
+  }
+
+  void _showActiveWorkoutNotification() {
+    NotificationService.showActiveWorkout(
+      exerciseName: _currentExercise.name,
+      elapsed: _elapsed,
+    );
   }
 
   void _selectExercise(int index) {
@@ -688,6 +709,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _currentExerciseIndex = index;
       _currentSetIndex = firstOpen >= 0 ? firstOpen : sets.length - 1;
     });
+    if (!_isPaused && _remainingSeconds == 0) {
+      _showActiveWorkoutNotification();
+    }
   }
 
   void _copyCurrentWeightToAll(Exercise exercise) {
@@ -790,6 +814,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _startRest() {
     _restTimer?.cancel();
     NotificationService.scheduleRestFinished();
+    NotificationService.showRestProgress(
+      exerciseName: _currentExercise.name,
+    );
     setState(() => _remainingSeconds = _restDuration);
     _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
@@ -799,6 +826,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       if (_remainingSeconds <= 1) {
         timer.cancel();
         setState(() => _remainingSeconds = 0);
+        _showActiveWorkoutNotification();
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Descanso concluído. Prepare a próxima série!'),
@@ -813,7 +841,17 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _skipRest() {
     _restTimer?.cancel();
     NotificationService.cancelRestNotification();
-    if (mounted) setState(() => _remainingSeconds = 0);
+    if (mounted) {
+      setState(() => _remainingSeconds = 0);
+      if (_isPaused) {
+        NotificationService.showPausedWorkout(
+          exerciseName: _currentExercise.name,
+          elapsed: _elapsed,
+        );
+      } else {
+        _showActiveWorkoutNotification();
+      }
+    }
   }
 
   void _showWorkoutCompletedMessage() {
@@ -949,6 +987,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _elapsedTimer?.cancel();
       _restTimer?.cancel();
       await NotificationService.cancelRestNotification();
+      await NotificationService.cancelWorkoutNotification();
       if (!mounted) return;
       widget.appState.recordWorkoutCompletion(
         workout: widget.workout,
@@ -986,6 +1025,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     if (leave == true && mounted) {
       _restTimer?.cancel();
       await NotificationService.cancelRestNotification();
+      await NotificationService.cancelWorkoutNotification();
       if (mounted) Navigator.pop(context);
     }
   }
@@ -994,6 +1034,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void dispose() {
     _elapsedTimer?.cancel();
     _restTimer?.cancel();
+    NotificationService.cancelRestNotification();
+    NotificationService.cancelWorkoutNotification();
     for (final controllers in _weightControllers.values) {
       for (final controller in controllers) {
         controller.dispose();
