@@ -1,10 +1,15 @@
 import 'package:flutter/material.dart';
 
+import 'services/notification_service.dart';
+import 'workout_execution_screen.dart';
+
 import 'data/app_state.dart';
 import 'models/exercise.dart';
 import 'models/workout.dart';
 
-void main() {
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await NotificationService.initialize();
   runApp(const GymCompanionApp());
 }
 
@@ -32,14 +37,8 @@ class GymCompanionApp extends StatelessWidget {
             fontWeight: FontWeight.w900,
             letterSpacing: -1,
           ),
-          titleLarge: TextStyle(
-            fontSize: 22,
-            fontWeight: FontWeight.w800,
-          ),
-          bodyMedium: TextStyle(
-            fontSize: 15,
-            color: Color(0xFFB8B8B8),
-          ),
+          titleLarge: TextStyle(fontSize: 22, fontWeight: FontWeight.w800),
+          bodyMedium: TextStyle(fontSize: 15, color: Color(0xFFB8B8B8)),
         ),
       ),
       home: const HomePage(),
@@ -86,8 +85,7 @@ class _HomePageState extends State<HomePage> {
               ),
               NavigationDestination(
                 icon: Icon(Icons.fitness_center_outlined),
-                selectedIcon:
-                    Icon(Icons.fitness_center, color: Colors.black),
+                selectedIcon: Icon(Icons.fitness_center, color: Colors.black),
                 label: 'Treinos',
               ),
               NavigationDestination(
@@ -144,8 +142,7 @@ class HomeTab extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        CreateWorkoutScreen(appState: appState),
+                    builder: (_) => CreateWorkoutScreen(appState: appState),
                   ),
                 );
               },
@@ -177,8 +174,7 @@ class HomeTab extends StatelessWidget {
               child: workouts.isEmpty
                   ? const _EmptyCard(
                       title: 'Nenhum treino criado',
-                      subtitle:
-                          'Toque em “Criar treino” para começar.',
+                      subtitle: 'Toque em “Criar treino” para começar.',
                     )
                   : ListView.builder(
                       itemCount: workouts.length,
@@ -204,9 +200,8 @@ class HomeTab extends StatelessWidget {
                               title: 'Excluir treino',
                               message:
                                   'Deseja excluir “${workout.name}” e todos os seus exercícios?',
-                              onConfirm: () => appState.removeWorkout(
-                                workout.id,
-                              ),
+                              onConfirm: () =>
+                                  appState.removeWorkout(workout.id),
                             );
                           },
                         );
@@ -251,8 +246,7 @@ class WorkoutsTab extends StatelessWidget {
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (_) =>
-                        CreateWorkoutScreen(appState: appState),
+                    builder: (_) => CreateWorkoutScreen(appState: appState),
                   ),
                 );
               },
@@ -326,8 +320,7 @@ class ReportsTab extends StatelessWidget {
             SizedBox(height: 20),
             _EmptyCard(
               title: 'Sem dados ainda',
-              subtitle:
-                  'Registre seus treinos para acompanhar cargas, volume e progresso.',
+              subtitle: 'Registre seus treinos para acompanhar cargas, volume e progresso.',
             ),
           ],
         ),
@@ -342,8 +335,7 @@ class CreateWorkoutScreen extends StatefulWidget {
   const CreateWorkoutScreen({super.key, required this.appState});
 
   @override
-  State<CreateWorkoutScreen> createState() =>
-      _CreateWorkoutScreenState();
+  State<CreateWorkoutScreen> createState() => _CreateWorkoutScreenState();
 }
 
 class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
@@ -430,9 +422,9 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
     final name = nameController.text.trim();
 
     if (name.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Digite o nome do treino.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('Digite o nome do treino.')));
       return;
     }
 
@@ -472,10 +464,7 @@ class WorkoutDetailsScreen extends StatelessWidget {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _StatCard(
-                  title: 'Grupo',
-                  value: workout.muscleGroup,
-                ),
+                _StatCard(title: 'Grupo', value: workout.muscleGroup),
                 const SizedBox(height: 12),
                 _StatCard(
                   title: 'Exercícios',
@@ -488,14 +477,12 @@ class WorkoutDetailsScreen extends StatelessWidget {
                   child: workout.exercises.isEmpty
                       ? const _EmptyCard(
                           title: 'Nenhum exercício',
-                          subtitle:
-                              'Adicione exercícios ao seu treino.',
+                          subtitle: 'Adicione exercícios ao seu treino.',
                         )
                       : ListView.builder(
                           itemCount: workout.exercises.length,
                           itemBuilder: (context, index) {
-                            final exercise =
-                                workout.exercises[index];
+                            final exercise = workout.exercises[index];
 
                             return _ExerciseCard(
                               exercise: exercise,
@@ -503,10 +490,8 @@ class WorkoutDetailsScreen extends StatelessWidget {
                                 showDeleteConfirmation(
                                   context,
                                   title: 'Excluir exercício',
-                                  message:
-                                      'Deseja excluir “${exercise.name}”?',
-                                  onConfirm: () =>
-                                      appState.removeExercise(
+                                  message: 'Deseja excluir “${exercise.name}”?',
+                                  onConfirm: () => appState.removeExercise(
                                     workoutId: workout.id,
                                     exerciseId: exercise.id,
                                   ),
@@ -516,6 +501,22 @@ class WorkoutDetailsScreen extends StatelessWidget {
                           },
                         ),
                 ),
+                if (workout.exercises.isNotEmpty) ...[
+                  _PrimaryButton(
+                    label: 'INICIAR TREINO',
+                    icon: Icons.play_arrow,
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) =>
+                              WorkoutExecutionScreen(workout: workout),
+                        ),
+                      );
+                    },
+                  ),
+                  const SizedBox(height: 12),
+                ],
                 _PrimaryButton(
                   label: 'ADICIONAR EXERCÍCIO',
                   icon: Icons.add,
@@ -608,10 +609,7 @@ class _AddExerciseSheetState extends State<AddExerciseSheet> {
           children: [
             const Text(
               'Novo exercício',
-              style: TextStyle(
-                fontSize: 22,
-                fontWeight: FontWeight.w900,
-              ),
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900),
             ),
             const SizedBox(height: 16),
             const _SectionTitle('Nome'),
@@ -685,8 +683,7 @@ class _AddExerciseSheetState extends State<AddExerciseSheet> {
                   child: TextField(
                     controller: setsController,
                     keyboardType: TextInputType.number,
-                    decoration:
-                        _inputDecoration('Séries'),
+                    decoration: _inputDecoration('Séries'),
                   ),
                 ),
                 const SizedBox(width: 10),
@@ -694,8 +691,7 @@ class _AddExerciseSheetState extends State<AddExerciseSheet> {
                   child: TextField(
                     controller: repsController,
                     keyboardType: TextInputType.number,
-                    decoration:
-                        _inputDecoration('Repetições'),
+                    decoration: _inputDecoration('Repetições'),
                   ),
                 ),
               ],
@@ -729,9 +725,7 @@ class _AddExerciseSheetState extends State<AddExerciseSheet> {
 
     if (name.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Digite o nome do exercício.'),
-        ),
+        const SnackBar(content: Text('Digite o nome do exercício.')),
       );
       return;
     }
@@ -908,10 +902,7 @@ class _StatCard extends StatelessWidget {
   final String title;
   final String value;
 
-  const _StatCard({
-    required this.title,
-    required this.value,
-  });
+  const _StatCard({required this.title, required this.value});
 
   @override
   Widget build(BuildContext context) {
@@ -937,10 +928,7 @@ class _StatCard extends StatelessWidget {
           const SizedBox(height: 8),
           Text(
             value,
-            style: const TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w900,
-            ),
+            style: const TextStyle(fontSize: 18, fontWeight: FontWeight.w900),
           ),
         ],
       ),
@@ -952,10 +940,7 @@ class _EmptyCard extends StatelessWidget {
   final String title;
   final String subtitle;
 
-  const _EmptyCard({
-    required this.title,
-    required this.subtitle,
-  });
+  const _EmptyCard({required this.title, required this.subtitle});
 
   @override
   Widget build(BuildContext context) {
@@ -970,10 +955,7 @@ class _EmptyCard extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text(
-            title,
-            style: Theme.of(context).textTheme.titleLarge,
-          ),
+          Text(title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 6),
           Text(subtitle),
         ],
@@ -1014,10 +996,7 @@ class _WorkoutCard extends StatelessWidget {
                 color: const Color(0xFFCCFF00),
                 borderRadius: BorderRadius.circular(16),
               ),
-              child: const Icon(
-                Icons.fitness_center,
-                color: Colors.black,
-              ),
+              child: const Icon(Icons.fitness_center, color: Colors.black),
             ),
           ),
           const SizedBox(width: 14),
@@ -1044,10 +1023,7 @@ class _WorkoutCard extends StatelessWidget {
           ),
           IconButton(
             onPressed: onDelete,
-            icon: const Icon(
-              Icons.delete_outline,
-              color: Colors.red,
-            ),
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
           ),
         ],
       ),
@@ -1059,10 +1035,7 @@ class _ExerciseCard extends StatelessWidget {
   final Exercise exercise;
   final VoidCallback onDelete;
 
-  const _ExerciseCard({
-    required this.exercise,
-    required this.onDelete,
-  });
+  const _ExerciseCard({required this.exercise, required this.onDelete});
 
   @override
   Widget build(BuildContext context) {
@@ -1098,10 +1071,7 @@ class _ExerciseCard extends StatelessWidget {
           ),
           IconButton(
             onPressed: onDelete,
-            icon: const Icon(
-              Icons.delete_outline,
-              color: Colors.red,
-            ),
+            icon: const Icon(Icons.delete_outline, color: Colors.red),
           ),
         ],
       ),
@@ -1128,9 +1098,7 @@ class _BodyPartSelector extends StatelessWidget {
         height: 54,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: selected
-              ? const Color(0xFFCCFF00)
-              : const Color(0xFF1E1E1E),
+          color: selected ? const Color(0xFFCCFF00) : const Color(0xFF1E1E1E),
           borderRadius: BorderRadius.circular(16),
         ),
         child: Text(
