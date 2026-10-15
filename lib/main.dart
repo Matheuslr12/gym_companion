@@ -514,8 +514,7 @@ class WorkoutDetailsScreen extends StatelessWidget {
                               },
                             );
                           },
-                        );
-                      },
+                        ),
                 ),
                 _PrimaryButton(
                   label: 'ADICIONAR EXERCÍCIO',
@@ -754,6 +753,41 @@ class _AddExerciseSheetState extends State<AddExerciseSheet> {
 
     Navigator.pop(context);
   }
+}
+
+Future<void> showDeleteConfirmation(
+  BuildContext context, {
+  required String title,
+  required String message,
+  required VoidCallback onConfirm,
+}) async {
+  await showDialog<void>(
+    context: context,
+    builder: (dialogContext) {
+      return AlertDialog(
+        backgroundColor: const Color(0xFF141414),
+        title: Text(title),
+        content: Text(message),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cancelar'),
+          ),
+          FilledButton(
+            onPressed: () {
+              onConfirm();
+              Navigator.pop(dialogContext);
+            },
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+              foregroundColor: Colors.white,
+            ),
+            child: const Text('Excluir'),
+          ),
+        ],
+      );
+    },
+  );
 }
 
 class _DropdownField extends StatelessWidget {
