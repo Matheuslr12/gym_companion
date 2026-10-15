@@ -224,7 +224,7 @@ class HomeTab extends StatelessWidget {
   ) {
     showDialog(
       context: context,
-      builder: (context) {
+      builder: (dialogContext) {
         return AlertDialog(
           backgroundColor: const Color(0xFF141414),
           title: const Text('Excluir treino'),
@@ -233,13 +233,15 @@ class HomeTab extends StatelessWidget {
           ),
           actions: [
             TextButton(
-              onPressed: () => Navigator.pop(context),
+              onPressed: () {
+                Navigator.pop(dialogContext);
+              },
               child: const Text('Cancelar'),
             ),
             FilledButton(
               onPressed: () {
                 appState.removeWorkout(workout.id);
-                Navigator.pop(context);
+                Navigator.pop(dialogContext);
               },
               style: FilledButton.styleFrom(
                 backgroundColor: Colors.red,
@@ -320,7 +322,7 @@ class WorkoutsTab extends StatelessWidget {
                           onDelete: () {
                             showDialog(
                               context: context,
-                              builder: (context) {
+                              builder: (dialogContext) {
                                 return AlertDialog(
                                   backgroundColor:
                                       const Color(0xFF141414),
@@ -332,8 +334,11 @@ class WorkoutsTab extends StatelessWidget {
                                   ),
                                   actions: [
                                     TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(context),
+                                      onPressed: () {
+                                        Navigator.pop(
+                                          dialogContext,
+                                        );
+                                      },
                                       child: const Text(
                                         'Cancelar',
                                       ),
@@ -343,7 +348,9 @@ class WorkoutsTab extends StatelessWidget {
                                         appState.removeWorkout(
                                           workout.id,
                                         );
-                                        Navigator.pop(context);
+                                        Navigator.pop(
+                                          dialogContext,
+                                        );
                                       },
                                       style: FilledButton.styleFrom(
                                         backgroundColor:
@@ -575,7 +582,7 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                               onDelete: () {
                                 showDialog(
                                   context: context,
-                                  builder: (context) {
+                                  builder: (dialogContext) {
                                     return AlertDialog(
                                       backgroundColor:
                                           const Color(0xFF141414),
@@ -587,10 +594,11 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                                       ),
                                       actions: [
                                         TextButton(
-                                          onPressed: () =>
-                                              Navigator.pop(
-                                            context,
-                                          ),
+                                          onPressed: () {
+                                            Navigator.pop(
+                                              dialogContext,
+                                            );
+                                          },
                                           child: const Text(
                                             'Cancelar',
                                           ),
@@ -604,7 +612,9 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                                               exerciseId:
                                                   exercise.id,
                                             );
-                                            Navigator.pop(context);
+                                            Navigator.pop(
+                                              dialogContext,
+                                            );
                                           },
                                           style: FilledButton
                                               .styleFrom(
