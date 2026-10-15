@@ -510,8 +510,10 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                                   ),
                                   const SizedBox(height: 4),
                                   Text(
-                                    '${exercise.bodyPart} • ${exercise.muscleGroup} • ${exercise.summary}',
+                                    '${exercise.bodyPart} • ${exercise.primaryMuscle} • Secundário: ${exercise.secondaryMuscle}',
                                   ),
+                                  const SizedBox(height: 4),
+                                  Text(exercise.summary),
                                 ],
                               ),
                             );
@@ -537,7 +539,8 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
     final repsController = TextEditingController(text: '10');
 
     String selectedBodyPart = 'Superiores';
-    String selectedMuscleGroup = 'Peito';
+    String selectedPrimaryMuscle = 'Peito';
+    String selectedSecondaryMuscle = 'Nenhum';
 
     final upperMuscles = [
       'Peito',
@@ -572,8 +575,13 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                 ? upperMuscles
                 : lowerMuscles;
 
-            if (!muscles.contains(selectedMuscleGroup)) {
-              selectedMuscleGroup = muscles.first;
+            if (!muscles.contains(selectedPrimaryMuscle)) {
+              selectedPrimaryMuscle = muscles.first;
+            }
+
+            if (selectedSecondaryMuscle != 'Nenhum' &&
+                !muscles.contains(selectedSecondaryMuscle)) {
+              selectedSecondaryMuscle = 'Nenhum';
             }
 
             return Padding(
@@ -624,8 +632,9 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                             onTap: () {
                               setSheetState(() {
                                 selectedBodyPart = 'Superiores';
-                                selectedMuscleGroup =
+                                selectedPrimaryMuscle =
                                     upperMuscles.first;
+                                selectedSecondaryMuscle = 'Nenhum';
                               });
                             },
                           ),
@@ -639,8 +648,9 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                             onTap: () {
                               setSheetState(() {
                                 selectedBodyPart = 'Inferiores';
-                                selectedMuscleGroup =
+                                selectedPrimaryMuscle =
                                     lowerMuscles.first;
+                                selectedSecondaryMuscle = 'Nenhum';
                               });
                             },
                           ),
@@ -648,32 +658,47 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                       ],
                     ),
                     const SizedBox(height: 18),
-                    const _SectionTitle('Músculo trabalhado'),
-                    const SizedBox(height: 8),
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 8,
-                      children: muscles.map((muscle) {
-                        final selected =
-                            muscle == selectedMuscleGroup;
-
-                        return ChoiceChip(
-                          label: Text(muscle),
-                          selected: selected,
-                          selectedColor: const Color(0xFFCCFF00),
-                          labelStyle: TextStyle(
-                            color: selected
-                                ? Colors.black
-                                : Colors.white,
-                            fontWeight: FontWeight.w700,
-                          ),
-                          onSelected: (_) {
-                            setSheetState(() {
-                              selectedMuscleGroup = muscle;
-                            });
-                          },
+                    _SelectableField(
+                      label: 'Músculo primário',
+                      value: selectedPrimaryMuscle,
+                      onTap: () async {
+                        final result = await _openMusclePicker(
+                          context: context,
+                          title: 'Selecione o músculo primário',
+                          options: muscles,
+                          selected: selectedPrimaryMuscle,
                         );
-                      }).toList(),
+
+                        if (result != null) {
+                          setSheetState(() {
+                            selectedPrimaryMuscle = result;
+
+                            if (selectedSecondaryMuscle ==
+                                result) {
+                              selectedSecondaryMuscle = 'Nenhum';
+                            }
+                          });
+                        }
+                      },
+                    ),
+                    const SizedBox(height: 12),
+                    _SelectableField(
+                      label: 'Músculo secundário',
+                      value: selectedSecondaryMuscle,
+                      onTap: () async {
+                        final result = await _openMusclePicker(
+                          context: context,
+                          title: 'Selecione o músculo secundário',
+                          options: ['Nenhum', ...muscles],
+                          selected: selectedSecondaryMuscle,
+                        );
+
+                        if (result != null) {
+                          setSheetState(() {
+                            selectedSecondaryMuscle = result;
+                          });
+                        }
+                      },
                     ),
                     const SizedBox(height: 18),
                     Row(
@@ -739,7 +764,9 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                                 .toString(),
                             name: name,
                             bodyPart: selectedBodyPart,
-                            muscleGroup: selectedMuscleGroup,
+                            primaryMuscle: selectedPrimaryMuscle,
+                            secondaryMuscle:
+                                selectedSecondaryMuscle,
                             sets: int.tryParse(
                                   setsController.text,
                                 ) ??
@@ -779,6 +806,74 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
               ),
             );
           },
+        );
+      },
+    );
+  }
+
+  Future<String?> _openMusclePicker({
+    required BuildContext context,
+    required String title,
+    required List<String> options,
+    required String selected,
+  }) {
+    return showModalBottomSheet<String>(
+      context: context,
+      backgroundColor: const Color(0xFF141414),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (context) {
+        return SafeArea(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Padding(
+                padding: const EdgeInsets.all(20),
+                child: Text(
+                  title,
+                  style: const TextStyle(
+                    fontSize: 20,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ),
+              Flexible(
+                child: ListView.builder(
+                  shrinkWrap: true,
+                  itemCount: options.length,
+                  itemBuilder: (context, index) {
+                    final option = options[index];
+                    final isSelected = option == selected;
+
+                    return ListTile(
+                      title: Text(
+                        option,
+                        style: TextStyle(
+                          fontWeight: isSelected
+                              ? FontWeight.w900
+                              : FontWeight.w500,
+                          color: isSelected
+                              ? const Color(0xFFCCFF00)
+                              : Colors.white,
+                        ),
+                      ),
+                      trailing: isSelected
+                          ? const Icon(
+                              Icons.check_circle,
+                              color: Color(0xFFCCFF00),
+                            )
+                          : null,
+                      onTap: () {
+                        Navigator.pop(context, option);
+                      },
+                    );
+                  },
+                ),
+              ),
+              const SizedBox(height: 12),
+            ],
+          ),
         );
       },
     );
@@ -1012,6 +1107,62 @@ class _BodyPartSelector extends StatelessWidget {
             fontWeight: FontWeight.w900,
             letterSpacing: 0.5,
           ),
+        ),
+      ),
+    );
+  }
+}
+
+class _SelectableField extends StatelessWidget {
+  final String label;
+  final String value;
+  final VoidCallback onTap;
+
+  const _SelectableField({
+    required this.label,
+    required this.value,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: Container(
+        width: double.infinity,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1E1E1E),
+          borderRadius: BorderRadius.circular(14),
+        ),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    label.toUpperCase(),
+                    style: const TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w700,
+                      letterSpacing: 1,
+                      color: Color(0xFF8A8A8A),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    value,
+                    style: const TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w800,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.keyboard_arrow_down),
+          ],
         ),
       ),
     );

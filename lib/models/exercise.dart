@@ -2,7 +2,8 @@ class Exercise {
   final String id;
   String name;
   String bodyPart;
-  String muscleGroup;
+  String primaryMuscle;
+  String secondaryMuscle;
   int sets;
   int reps;
   double weight;
@@ -11,7 +12,8 @@ class Exercise {
     required this.id,
     required this.name,
     required this.bodyPart,
-    required this.muscleGroup,
+    required this.primaryMuscle,
+    required this.secondaryMuscle,
     required this.sets,
     required this.reps,
     this.weight = 0,
