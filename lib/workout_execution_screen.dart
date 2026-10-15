@@ -2,14 +2,20 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import 'data/app_state.dart';
 import 'models/exercise.dart';
 import 'models/workout.dart';
 import 'services/notification_service.dart';
 
 class WorkoutExecutionScreen extends StatefulWidget {
+  final AppState appState;
   final Workout workout;
 
-  const WorkoutExecutionScreen({super.key, required this.workout});
+  const WorkoutExecutionScreen({
+    super.key,
+    required this.appState,
+    required this.workout,
+  });
 
   @override
   State<WorkoutExecutionScreen> createState() => _WorkoutExecutionScreenState();
@@ -290,8 +296,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     }
     setState(() {
       for (var index = 0; index < controllers.length; index++) {
-        if (!_completedSets[exercise.id]![index])
+        if (!_completedSets[exercise.id]![index]) {
           controllers[index].text = source;
+        }
       }
     });
   }
@@ -369,6 +376,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       _restTimer?.cancel();
       await NotificationService.cancelRestNotification();
       if (!mounted) return;
+      widget.appState.recordWorkoutCompletion(
+        workout: widget.workout,
+        totalSets: _totalSets,
+      );
       Navigator.pop(context);
     }
   }
@@ -377,10 +388,14 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void dispose() {
     _restTimer?.cancel();
     for (final controllers in _weightControllers.values) {
-      for (final controller in controllers) controller.dispose();
+      for (final controller in controllers) {
+        controller.dispose();
+      }
     }
     for (final controllers in _repsControllers.values) {
-      for (final controller in controllers) controller.dispose();
+      for (final controller in controllers) {
+        controller.dispose();
+      }
     }
     super.dispose();
   }

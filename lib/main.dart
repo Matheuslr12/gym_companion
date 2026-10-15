@@ -6,6 +6,7 @@ import 'workout_execution_screen.dart';
 import 'data/app_state.dart';
 import 'models/exercise.dart';
 import 'models/workout.dart';
+import 'models/workout_session.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -101,29 +102,55 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
-class HomeTab extends StatelessWidget {
+class HomeTab extends StatefulWidget {
   final AppState appState;
 
   const HomeTab({super.key, required this.appState});
 
   @override
-  Widget build(BuildContext context) {
-    final workouts = appState.workouts;
-    final totalExercises = workouts.fold<int>(
-      0,
-      (total, workout) => total + workout.exercises.length,
+  State<HomeTab> createState() => _HomeTabState();
+}
+
+class _HomeTabState extends State<HomeTab> {
+  String? selectedWorkoutId;
+
+  Workout? get selectedWorkout {
+    for (final workout in widget.appState.workouts) {
+      if (workout.id == selectedWorkoutId) return workout;
+    }
+    return null;
+  }
+
+  void _ensureSelection() {
+    final workouts = widget.appState.workouts;
+    if (workouts.isEmpty) {
+      selectedWorkoutId = null;
+      return;
+    }
+    final selectionStillExists = workouts.any(
+      (workout) => workout.id == selectedWorkoutId,
     );
+    if (!selectionStillExists) {
+      selectedWorkoutId = workouts.first.id;
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    _ensureSelection();
+    final workouts = widget.appState.workouts;
+    final weeklySessions = widget.appState.sessionsThisWeek;
 
     return SafeArea(
       child: Padding(
-        padding: const EdgeInsets.all(20),
+        padding: const EdgeInsets.fromLTRB(20, 20, 20, 0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             const Text(
               'GYM\nCOMPANION',
               style: TextStyle(
-                fontSize: 38,
+                fontSize: 36,
                 height: 0.95,
                 fontWeight: FontWeight.w900,
                 letterSpacing: -1.5,
@@ -131,85 +158,106 @@ class HomeTab extends StatelessWidget {
             ),
             const SizedBox(height: 8),
             Text(
-              'Treine com foco. Acompanhe sua evolução.',
+              'Escolha um treino e comece agora.',
               style: Theme.of(context).textTheme.bodyMedium,
             ),
-            const SizedBox(height: 28),
+            const SizedBox(height: 24),
+            const _SectionTitle('Selecionar treino'),
+            const SizedBox(height: 12),
+            SizedBox(
+              height: 126,
+              child: workouts.isEmpty
+                  ? const _EmptyCard(
+                      title: 'Nenhum treino disponível',
+                      subtitle: 'Crie um treino na aba Treinos.',
+                    )
+                  : ListView.separated(
+                      scrollDirection: Axis.horizontal,
+                      itemCount: workouts.length,
+                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      itemBuilder: (context, index) {
+                        final workout = workouts[index];
+                        final selected = workout.id == selectedWorkoutId;
+                        return _WorkoutSelectorCard(
+                          workout: workout,
+                          selected: selected,
+                          onTap: () {
+                            setState(() => selectedWorkoutId = workout.id);
+                          },
+                        );
+                      },
+                    ),
+            ),
+            const SizedBox(height: 14),
             _PrimaryButton(
-              label: 'CRIAR TREINO',
-              icon: Icons.add,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => CreateWorkoutScreen(appState: appState),
-                  ),
-                );
-              },
+              label: 'INICIAR TREINO',
+              icon: Icons.play_arrow,
+              onTap: _startSelectedWorkout,
             ),
             const SizedBox(height: 24),
-            const _SectionTitle('Resumo'),
+            const _SectionTitle('Resumo da semana'),
             const SizedBox(height: 12),
             Row(
               children: [
                 Expanded(
                   child: _StatCard(
-                    title: 'Treinos',
-                    value: workouts.length.toString(),
+                    title: 'Treinos realizados',
+                    value: weeklySessions.length.toString(),
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
                   child: _StatCard(
-                    title: 'Exercícios',
-                    value: totalExercises.toString(),
+                    title: 'Séries concluídas',
+                    value: widget.appState.setsCompletedThisWeek.toString(),
                   ),
                 ),
               ],
             ),
-            const SizedBox(height: 24),
-            const _SectionTitle('Seus treinos'),
-            const SizedBox(height: 12),
+            const SizedBox(height: 14),
             Expanded(
-              child: workouts.isEmpty
+              child: weeklySessions.isEmpty
                   ? const _EmptyCard(
-                      title: 'Nenhum treino criado',
-                      subtitle: 'Toque em “Criar treino” para começar.',
+                      title: 'Nenhum treino nesta semana',
+                      subtitle: 'Os treinos finalizados aparecerão aqui.',
                     )
-                  : ListView.builder(
-                      itemCount: workouts.length,
+                  : ListView.separated(
+                      itemCount: weeklySessions.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
-                        final workout = workouts[index];
-
-                        return _WorkoutCard(
-                          workout: workout,
-                          onTap: () {
-                            Navigator.push(
-                              context,
-                              MaterialPageRoute(
-                                builder: (_) => WorkoutDetailsScreen(
-                                  appState: appState,
-                                  workout: workout,
-                                ),
-                              ),
-                            );
-                          },
-                          onDelete: () {
-                            showDeleteConfirmation(
-                              context,
-                              title: 'Excluir treino',
-                              message:
-                                  'Deseja excluir “${workout.name}” e todos os seus exercícios?',
-                              onConfirm: () =>
-                                  appState.removeWorkout(workout.id),
-                            );
-                          },
+                        return _WeeklySessionCard(
+                          session: weeklySessions[index],
                         );
                       },
                     ),
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  void _startSelectedWorkout() {
+    final workout = selectedWorkout;
+    if (workout == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Crie e selecione um treino primeiro.')),
+      );
+      return;
+    }
+    if (workout.exercises.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Adicione pelo menos um exercício a este treino.'),
+        ),
+      );
+      return;
+    }
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) =>
+            WorkoutExecutionScreen(appState: widget.appState, workout: workout),
       ),
     );
   }
@@ -320,7 +368,8 @@ class ReportsTab extends StatelessWidget {
             SizedBox(height: 20),
             _EmptyCard(
               title: 'Sem dados ainda',
-              subtitle: 'Registre seus treinos para acompanhar cargas, volume e progresso.',
+              subtitle:
+                  'Registre seus treinos para acompanhar cargas, volume e progresso.',
             ),
           ],
         ),
@@ -501,22 +550,6 @@ class WorkoutDetailsScreen extends StatelessWidget {
                           },
                         ),
                 ),
-                if (workout.exercises.isNotEmpty) ...[
-                  _PrimaryButton(
-                    label: 'INICIAR TREINO',
-                    icon: Icons.play_arrow,
-                    onTap: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) =>
-                              WorkoutExecutionScreen(workout: workout),
-                        ),
-                      );
-                    },
-                  ),
-                  const SizedBox(height: 12),
-                ],
                 _PrimaryButton(
                   label: 'ADICIONAR EXERCÍCIO',
                   icon: Icons.add,
@@ -958,6 +991,141 @@ class _EmptyCard extends StatelessWidget {
           Text(title, style: Theme.of(context).textTheme.titleLarge),
           const SizedBox(height: 6),
           Text(subtitle),
+        ],
+      ),
+    );
+  }
+}
+
+class _WorkoutSelectorCard extends StatelessWidget {
+  final Workout workout;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _WorkoutSelectorCard({
+    required this.workout,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        width: 210,
+        padding: const EdgeInsets.all(16),
+        decoration: BoxDecoration(
+          color: selected ? const Color(0xFFCCFF00) : const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected ? const Color(0xFFCCFF00) : const Color(0xFF262626),
+          ),
+        ),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Row(
+              children: [
+                Icon(
+                  selected ? Icons.check_circle : Icons.fitness_center,
+                  color: selected ? Colors.black : const Color(0xFFCCFF00),
+                ),
+                const Spacer(),
+                Text(
+                  '${workout.totalExercises} EX.',
+                  style: TextStyle(
+                    color: selected ? Colors.black54 : const Color(0xFF8A8A8A),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 12),
+            Text(
+              workout.name,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: selected ? Colors.black : Colors.white,
+                fontSize: 18,
+                fontWeight: FontWeight.w900,
+              ),
+            ),
+            const SizedBox(height: 3),
+            Text(
+              workout.muscleGroup,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: TextStyle(
+                color: selected ? Colors.black70 : const Color(0xFFB8B8B8),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _WeeklySessionCard extends StatelessWidget {
+  final WorkoutSession session;
+
+  const _WeeklySessionCard({required this.session});
+
+  @override
+  Widget build(BuildContext context) {
+    final date = session.completedAt;
+    final day = date.day.toString().padLeft(2, '0');
+    final month = date.month.toString().padLeft(2, '0');
+    final hour = date.hour.toString().padLeft(2, '0');
+    final minute = date.minute.toString().padLeft(2, '0');
+
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Container(
+            width: 46,
+            height: 46,
+            decoration: BoxDecoration(
+              color: const Color(0xFF232323),
+              borderRadius: BorderRadius.circular(14),
+            ),
+            child: const Icon(Icons.check, color: Color(0xFFCCFF00)),
+          ),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  session.workoutName,
+                  style: const TextStyle(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 3),
+                Text(
+                  '${session.totalExercises} exercícios • ${session.totalSets} séries',
+                ),
+              ],
+            ),
+          ),
+          Text(
+            '$day/$month\n$hour:$minute',
+            textAlign: TextAlign.right,
+            style: const TextStyle(
+              color: Color(0xFF8A8A8A),
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+            ),
+          ),
         ],
       ),
     );

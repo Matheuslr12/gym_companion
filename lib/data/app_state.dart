@@ -2,11 +2,49 @@ import 'package:flutter/foundation.dart';
 
 import '../models/exercise.dart';
 import '../models/workout.dart';
+import '../models/workout_session.dart';
 
 class AppState extends ChangeNotifier {
   final List<Workout> _workouts = [];
+  final List<WorkoutSession> _workoutSessions = [];
 
   List<Workout> get workouts => List.unmodifiable(_workouts);
+  List<WorkoutSession> get workoutSessions =>
+      List.unmodifiable(_workoutSessions);
+
+  List<WorkoutSession> get sessionsThisWeek {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
+    final endOfWeek = startOfWeek.add(const Duration(days: 7));
+
+    final sessions = _workoutSessions.where((session) {
+      return !session.completedAt.isBefore(startOfWeek) &&
+          session.completedAt.isBefore(endOfWeek);
+    }).toList();
+    sessions.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    return List.unmodifiable(sessions);
+  }
+
+  int get setsCompletedThisWeek =>
+      sessionsThisWeek.fold(0, (total, session) => total + session.totalSets);
+
+  void recordWorkoutCompletion({
+    required Workout workout,
+    required int totalSets,
+  }) {
+    _workoutSessions.add(
+      WorkoutSession(
+        id: DateTime.now().microsecondsSinceEpoch.toString(),
+        workoutId: workout.id,
+        workoutName: workout.name,
+        completedAt: DateTime.now(),
+        totalSets: totalSets,
+        totalExercises: workout.exercises.length,
+      ),
+    );
+    notifyListeners();
+  }
 
   void addWorkout(Workout workout) {
     _workouts.add(workout);
@@ -18,13 +56,8 @@ class AppState extends ChangeNotifier {
     notifyListeners();
   }
 
-  void addExercise({
-    required String workoutId,
-    required Exercise exercise,
-  }) {
-    final index = _workouts.indexWhere(
-      (workout) => workout.id == workoutId,
-    );
+  void addExercise({required String workoutId, required Exercise exercise}) {
+    final index = _workouts.indexWhere((workout) => workout.id == workoutId);
 
     if (index != -1) {
       _workouts[index].exercises.add(exercise);
@@ -32,18 +65,13 @@ class AppState extends ChangeNotifier {
     }
   }
 
-  void removeExercise({
-    required String workoutId,
-    required String exerciseId,
-  }) {
-    final index = _workouts.indexWhere(
-      (workout) => workout.id == workoutId,
-    );
+  void removeExercise({required String workoutId, required String exerciseId}) {
+    final index = _workouts.indexWhere((workout) => workout.id == workoutId);
 
     if (index != -1) {
       _workouts[index].exercises.removeWhere(
-            (exercise) => exercise.id == exerciseId,
-          );
+        (exercise) => exercise.id == exerciseId,
+      );
 
       notifyListeners();
     }
