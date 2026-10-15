@@ -183,6 +183,10 @@ class HomeTab extends StatelessWidget {
                             context,
                             workout,
                           ),
+                          onDelete: () => _confirmDeleteWorkout(
+                            context,
+                            workout,
+                          ),
                         );
                       },
                     ),
@@ -211,6 +215,41 @@ class HomeTab extends StatelessWidget {
           workout: workout,
         ),
       ),
+    );
+  }
+
+  void _confirmDeleteWorkout(
+    BuildContext context,
+    Workout workout,
+  ) {
+    showDialog(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF141414),
+          title: const Text('Excluir treino'),
+          content: Text(
+            'Deseja excluir “${workout.name}” e todos os seus exercícios?',
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('Cancelar'),
+            ),
+            FilledButton(
+              onPressed: () {
+                appState.removeWorkout(workout.id);
+                Navigator.pop(context);
+              },
+              style: FilledButton.styleFrom(
+                backgroundColor: Colors.red,
+                foregroundColor: Colors.white,
+              ),
+              child: const Text('Excluir'),
+            ),
+          ],
+        );
+      },
     );
   }
 }
@@ -276,6 +315,49 @@ class WorkoutsTab extends StatelessWidget {
                                   workout: workout,
                                 ),
                               ),
+                            );
+                          },
+                          onDelete: () {
+                            showDialog(
+                              context: context,
+                              builder: (context) {
+                                return AlertDialog(
+                                  backgroundColor:
+                                      const Color(0xFF141414),
+                                  title: const Text(
+                                    'Excluir treino',
+                                  ),
+                                  content: Text(
+                                    'Deseja excluir “${workout.name}” e todos os seus exercícios?',
+                                  ),
+                                  actions: [
+                                    TextButton(
+                                      onPressed: () =>
+                                          Navigator.pop(context),
+                                      child: const Text(
+                                        'Cancelar',
+                                      ),
+                                    ),
+                                    FilledButton(
+                                      onPressed: () {
+                                        appState.removeWorkout(
+                                          workout.id,
+                                        );
+                                        Navigator.pop(context);
+                                      },
+                                      style: FilledButton.styleFrom(
+                                        backgroundColor:
+                                            Colors.red,
+                                        foregroundColor:
+                                            Colors.white,
+                                      ),
+                                      child: const Text(
+                                        'Excluir',
+                                      ),
+                                    ),
+                                  ],
+                                );
+                              },
                             );
                           },
                         );
@@ -488,37 +570,62 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                             final exercise =
                                 widget.workout.exercises[index];
 
-                            return Container(
-                              margin:
-                                  const EdgeInsets.only(bottom: 12),
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: const Color(0xFF141414),
-                                borderRadius:
-                                    BorderRadius.circular(18),
-                              ),
-                              child: Column(
-                                crossAxisAlignment:
-                                    CrossAxisAlignment.start,
-                                children: [
-                                  Text(
-                                    exercise.name,
-                                    style: const TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w800,
-                                    ),
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(
-                                    '${exercise.bodyPart} • ${exercise.primaryMuscle} • Secundário: ${exercise.secondaryMuscle}',
-                                  ),
-                                  const SizedBox(height: 4),
-                                  Text(exercise.summary),
-                                ],
-                              ),
+                            return _ExerciseCard(
+                              exercise: exercise,
+                              onDelete: () {
+                                showDialog(
+                                  context: context,
+                                  builder: (context) {
+                                    return AlertDialog(
+                                      backgroundColor:
+                                          const Color(0xFF141414),
+                                      title: const Text(
+                                        'Excluir exercício',
+                                      ),
+                                      content: Text(
+                                        'Deseja excluir “${exercise.name}”?',
+                                      ),
+                                      actions: [
+                                        TextButton(
+                                          onPressed: () =>
+                                              Navigator.pop(
+                                            context,
+                                          ),
+                                          child: const Text(
+                                            'Cancelar',
+                                          ),
+                                        ),
+                                        FilledButton(
+                                          onPressed: () {
+                                            widget.appState
+                                                .removeExercise(
+                                              workoutId: widget
+                                                  .workout.id,
+                                              exerciseId:
+                                                  exercise.id,
+                                            );
+                                            Navigator.pop(context);
+                                          },
+                                          style: FilledButton
+                                              .styleFrom(
+                                            backgroundColor:
+                                                Colors.red,
+                                            foregroundColor:
+                                                Colors.white,
+                                          ),
+                                          child: const Text(
+                                            'Excluir',
+                                          ),
+                                        ),
+                                      ],
+                                    );
+                                  },
+                                );
+                              },
                             );
                           },
-                        ),
+                        );
+                      },
                 ),
                 _PrimaryButton(
                   label: 'ADICIONAR EXERCÍCIO',
@@ -1017,27 +1124,29 @@ class _EmptyCard extends StatelessWidget {
 class _WorkoutCard extends StatelessWidget {
   final Workout workout;
   final VoidCallback onTap;
+  final VoidCallback onDelete;
 
   const _WorkoutCard({
     required this.workout,
     required this.onTap,
+    required this.onDelete,
   });
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.only(bottom: 12),
-        padding: const EdgeInsets.all(18),
-        decoration: BoxDecoration(
-          color: const Color(0xFF141414),
-          borderRadius: BorderRadius.circular(20),
-        ),
-        child: Row(
-          children: [
-            Container(
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        children: [
+          GestureDetector(
+            onTap: onTap,
+            child: Container(
               width: 52,
               height: 52,
               decoration: BoxDecoration(
@@ -1049,8 +1158,11 @@ class _WorkoutCard extends StatelessWidget {
                 color: Colors.black,
               ),
             ),
-            const SizedBox(width: 14),
-            Expanded(
+          ),
+          const SizedBox(width: 14),
+          Expanded(
+            child: GestureDetector(
+              onTap: onTap,
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -1068,9 +1180,69 @@ class _WorkoutCard extends StatelessWidget {
                 ],
               ),
             ),
-            const Icon(Icons.chevron_right),
-          ],
-        ),
+          ),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.red,
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class _ExerciseCard extends StatelessWidget {
+  final Exercise exercise;
+  final VoidCallback onDelete;
+
+  const _ExerciseCard({
+    required this.exercise,
+    required this.onDelete,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.only(bottom: 12),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: const Color(0xFF141414),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  exercise.name,
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  '${exercise.bodyPart} • ${exercise.primaryMuscle} • Secundário: ${exercise.secondaryMuscle}',
+                ),
+                const SizedBox(height: 4),
+                Text(exercise.summary),
+              ],
+            ),
+          ),
+          IconButton(
+            onPressed: onDelete,
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.red,
+            ),
+          ),
+        ],
       ),
     );
   }
