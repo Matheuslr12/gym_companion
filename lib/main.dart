@@ -140,7 +140,15 @@ class HomeTab extends StatelessWidget {
             _PrimaryButton(
               label: 'CRIAR TREINO',
               icon: Icons.add,
-              onTap: () => _openCreateWorkout(context),
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        CreateWorkoutScreen(appState: appState),
+                  ),
+                );
+              },
             ),
             const SizedBox(height: 24),
             const _SectionTitle('Resumo'),
@@ -179,14 +187,28 @@ class HomeTab extends StatelessWidget {
 
                         return _WorkoutCard(
                           workout: workout,
-                          onTap: () => _openWorkoutDetails(
-                            context,
-                            workout,
-                          ),
-                          onDelete: () => _confirmDeleteWorkout(
-                            context,
-                            workout,
-                          ),
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => WorkoutDetailsScreen(
+                                  appState: appState,
+                                  workout: workout,
+                                ),
+                              ),
+                            );
+                          },
+                          onDelete: () {
+                            showDeleteConfirmation(
+                              context,
+                              title: 'Excluir treino',
+                              message:
+                                  'Deseja excluir “${workout.name}” e todos os seus exercícios?',
+                              onConfirm: () => appState.removeWorkout(
+                                workout.id,
+                              ),
+                            );
+                          },
                         );
                       },
                     ),
@@ -194,64 +216,6 @@ class HomeTab extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-
-  void _openCreateWorkout(BuildContext context) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => CreateWorkoutScreen(appState: appState),
-      ),
-    );
-  }
-
-  void _openWorkoutDetails(BuildContext context, Workout workout) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => WorkoutDetailsScreen(
-          appState: appState,
-          workout: workout,
-        ),
-      ),
-    );
-  }
-
-  void _confirmDeleteWorkout(
-    BuildContext context,
-    Workout workout,
-  ) {
-    showDialog(
-      context: context,
-      builder: (dialogContext) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF141414),
-          title: const Text('Excluir treino'),
-          content: Text(
-            'Deseja excluir “${workout.name}” e todos os seus exercícios?',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () {
-                Navigator.pop(dialogContext);
-              },
-              child: const Text('Cancelar'),
-            ),
-            FilledButton(
-              onPressed: () {
-                appState.removeWorkout(workout.id);
-                Navigator.pop(dialogContext);
-              },
-              style: FilledButton.styleFrom(
-                backgroundColor: Colors.red,
-                foregroundColor: Colors.white,
-              ),
-              child: const Text('Excluir'),
-            ),
-          ],
-        );
-      },
     );
   }
 }
@@ -320,51 +284,13 @@ class WorkoutsTab extends StatelessWidget {
                             );
                           },
                           onDelete: () {
-                            showDialog(
-                              context: context,
-                              builder: (dialogContext) {
-                                return AlertDialog(
-                                  backgroundColor:
-                                      const Color(0xFF141414),
-                                  title: const Text(
-                                    'Excluir treino',
-                                  ),
-                                  content: Text(
-                                    'Deseja excluir “${workout.name}” e todos os seus exercícios?',
-                                  ),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () {
-                                        Navigator.pop(
-                                          dialogContext,
-                                        );
-                                      },
-                                      child: const Text(
-                                        'Cancelar',
-                                      ),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () {
-                                        appState.removeWorkout(
-                                          workout.id,
-                                        );
-                                        Navigator.pop(
-                                          dialogContext,
-                                        );
-                                      },
-                                      style: FilledButton.styleFrom(
-                                        backgroundColor:
-                                            Colors.red,
-                                        foregroundColor:
-                                            Colors.white,
-                                      ),
-                                      child: const Text(
-                                        'Excluir',
-                                      ),
-                                    ),
-                                  ],
-                                );
-                              },
+                            showDeleteConfirmation(
+                              context,
+                              title: 'Excluir treino',
+                              message:
+                                  'Deseja excluir “${workout.name}” e todos os seus exercícios?',
+                              onConfirm: () =>
+                                  appState.removeWorkout(workout.id),
                             );
                           },
                         );
@@ -521,7 +447,7 @@ class _CreateWorkoutScreenState extends State<CreateWorkoutScreen> {
   }
 }
 
-class WorkoutDetailsScreen extends StatefulWidget {
+class WorkoutDetailsScreen extends StatelessWidget {
   final AppState appState;
   final Workout workout;
 
@@ -532,20 +458,14 @@ class WorkoutDetailsScreen extends StatefulWidget {
   });
 
   @override
-  State<WorkoutDetailsScreen> createState() =>
-      _WorkoutDetailsScreenState();
-}
-
-class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
-  @override
   Widget build(BuildContext context) {
     return ListenableBuilder(
-      listenable: widget.appState,
+      listenable: appState,
       builder: (context, _) {
         return Scaffold(
           appBar: AppBar(
             backgroundColor: Colors.transparent,
-            title: Text(widget.workout.name),
+            title: Text(workout.name),
           ),
           body: Padding(
             padding: const EdgeInsets.all(20),
@@ -554,82 +474,42 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
               children: [
                 _StatCard(
                   title: 'Grupo',
-                  value: widget.workout.muscleGroup,
+                  value: workout.muscleGroup,
                 ),
                 const SizedBox(height: 12),
                 _StatCard(
                   title: 'Exercícios',
-                  value: widget.workout.totalExercises.toString(),
+                  value: workout.totalExercises.toString(),
                 ),
                 const SizedBox(height: 24),
                 const _SectionTitle('Exercícios'),
                 const SizedBox(height: 12),
                 Expanded(
-                  child: widget.workout.exercises.isEmpty
+                  child: workout.exercises.isEmpty
                       ? const _EmptyCard(
                           title: 'Nenhum exercício',
                           subtitle:
                               'Adicione exercícios ao seu treino.',
                         )
                       : ListView.builder(
-                          itemCount: widget.workout.exercises.length,
+                          itemCount: workout.exercises.length,
                           itemBuilder: (context, index) {
                             final exercise =
-                                widget.workout.exercises[index];
+                                workout.exercises[index];
 
                             return _ExerciseCard(
                               exercise: exercise,
                               onDelete: () {
-                                showDialog(
-                                  context: context,
-                                  builder: (dialogContext) {
-                                    return AlertDialog(
-                                      backgroundColor:
-                                          const Color(0xFF141414),
-                                      title: const Text(
-                                        'Excluir exercício',
-                                      ),
-                                      content: Text(
-                                        'Deseja excluir “${exercise.name}”?',
-                                      ),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.pop(
-                                              dialogContext,
-                                            );
-                                          },
-                                          child: const Text(
-                                            'Cancelar',
-                                          ),
-                                        ),
-                                        FilledButton(
-                                          onPressed: () {
-                                            widget.appState
-                                                .removeExercise(
-                                              workoutId: widget
-                                                  .workout.id,
-                                              exerciseId:
-                                                  exercise.id,
-                                            );
-                                            Navigator.pop(
-                                              dialogContext,
-                                            );
-                                          },
-                                          style: FilledButton
-                                              .styleFrom(
-                                            backgroundColor:
-                                                Colors.red,
-                                            foregroundColor:
-                                                Colors.white,
-                                          ),
-                                          child: const Text(
-                                            'Excluir',
-                                          ),
-                                        ),
-                                      ],
-                                    );
-                                  },
+                                showDeleteConfirmation(
+                                  context,
+                                  title: 'Excluir exercício',
+                                  message:
+                                      'Deseja excluir “${exercise.name}”?',
+                                  onConfirm: () =>
+                                      appState.removeExercise(
+                                    workoutId: workout.id,
+                                    exerciseId: exercise.id,
+                                  ),
                                 );
                               },
                             );
@@ -640,7 +520,24 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
                 _PrimaryButton(
                   label: 'ADICIONAR EXERCÍCIO',
                   icon: Icons.add,
-                  onTap: _openAddExercise,
+                  onTap: () {
+                    showModalBottomSheet(
+                      context: context,
+                      isScrollControlled: true,
+                      backgroundColor: const Color(0xFF141414),
+                      shape: const RoundedRectangleBorder(
+                        borderRadius: BorderRadius.vertical(
+                          top: Radius.circular(24),
+                        ),
+                      ),
+                      builder: (_) {
+                        return AddExerciseSheet(
+                          appState: appState,
+                          workout: workout,
+                        );
+                      },
+                    );
+                  },
                 ),
               ],
             ),
@@ -649,350 +546,270 @@ class _WorkoutDetailsScreenState extends State<WorkoutDetailsScreen> {
       },
     );
   }
+}
 
-  void _openAddExercise() {
-    final nameController = TextEditingController();
-    final setsController = TextEditingController(text: '3');
-    final repsController = TextEditingController(text: '10');
+class AddExerciseSheet extends StatefulWidget {
+  final AppState appState;
+  final Workout workout;
 
-    String selectedBodyPart = 'Superiores';
-    String selectedPrimaryMuscle = 'Peito';
-    String selectedSecondaryMuscle = 'Nenhum';
+  const AddExerciseSheet({
+    super.key,
+    required this.appState,
+    required this.workout,
+  });
 
-    final upperMuscles = [
-      'Peito',
-      'Costas',
-      'Ombros',
-      'Bíceps',
-      'Tríceps',
-      'Antebraço',
-      'Abdômen',
-    ];
+  @override
+  State<AddExerciseSheet> createState() => _AddExerciseSheetState();
+}
 
-    final lowerMuscles = [
-      'Quadríceps',
-      'Posterior de coxa',
-      'Glúteos',
-      'Panturrilha',
-      'Adutores',
-      'Abdutores',
-    ];
+class _AddExerciseSheetState extends State<AddExerciseSheet> {
+  final nameController = TextEditingController();
+  final setsController = TextEditingController(text: '3');
+  final repsController = TextEditingController(text: '10');
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: const Color(0xFF141414),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  String bodyPart = 'Superiores';
+  String primaryMuscle = 'Peito';
+  String secondaryMuscle = 'Nenhum';
+
+  final upperMuscles = [
+    'Peito',
+    'Costas',
+    'Ombros',
+    'Bíceps',
+    'Tríceps',
+    'Antebraço',
+    'Abdômen',
+  ];
+
+  final lowerMuscles = [
+    'Quadríceps',
+    'Posterior de coxa',
+    'Glúteos',
+    'Panturrilha',
+    'Adutores',
+    'Abdutores',
+  ];
+
+  List<String> get muscles =>
+      bodyPart == 'Superiores' ? upperMuscles : lowerMuscles;
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.only(
+        left: 20,
+        right: 20,
+        top: 20,
+        bottom: MediaQuery.of(context).viewInsets.bottom + 20,
       ),
-      builder: (context) {
-        return StatefulBuilder(
-          builder: (context, setSheetState) {
-            final muscles = selectedBodyPart == 'Superiores'
-                ? upperMuscles
-                : lowerMuscles;
-
-            if (!muscles.contains(selectedPrimaryMuscle)) {
-              selectedPrimaryMuscle = muscles.first;
-            }
-
-            if (selectedSecondaryMuscle != 'Nenhum' &&
-                !muscles.contains(selectedSecondaryMuscle)) {
-              selectedSecondaryMuscle = 'Nenhum';
-            }
-
-            return Padding(
-              padding: EdgeInsets.only(
-                left: 20,
-                right: 20,
-                top: 20,
-                bottom:
-                    MediaQuery.of(context).viewInsets.bottom + 20,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Novo exercício',
+              style: TextStyle(
+                fontSize: 22,
+                fontWeight: FontWeight.w900,
               ),
-              child: SingleChildScrollView(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const Text(
-                      'Novo exercício',
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.w900,
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    const _SectionTitle('Nome'),
-                    const SizedBox(height: 8),
-                    TextField(
-                      controller: nameController,
-                      decoration: InputDecoration(
-                        hintText: 'Ex: Supino reto',
-                        filled: true,
-                        fillColor: const Color(0xFF1E1E1E),
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(14),
-                          borderSide: BorderSide.none,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 18),
-                    const _SectionTitle('Região do corpo'),
-                    const SizedBox(height: 8),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: _BodyPartSelector(
-                            label: 'Superiores',
-                            selected:
-                                selectedBodyPart == 'Superiores',
-                            onTap: () {
-                              setSheetState(() {
-                                selectedBodyPart = 'Superiores';
-                                selectedPrimaryMuscle =
-                                    upperMuscles.first;
-                                selectedSecondaryMuscle = 'Nenhum';
-                              });
-                            },
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: _BodyPartSelector(
-                            label: 'Inferiores',
-                            selected:
-                                selectedBodyPart == 'Inferiores',
-                            onTap: () {
-                              setSheetState(() {
-                                selectedBodyPart = 'Inferiores';
-                                selectedPrimaryMuscle =
-                                    lowerMuscles.first;
-                                selectedSecondaryMuscle = 'Nenhum';
-                              });
-                            },
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 18),
-                    _SelectableField(
-                      label: 'Músculo primário',
-                      value: selectedPrimaryMuscle,
-                      onTap: () async {
-                        final result = await _openMusclePicker(
-                          context: context,
-                          title: 'Selecione o músculo primário',
-                          options: muscles,
-                          selected: selectedPrimaryMuscle,
-                        );
-
-                        if (result != null) {
-                          setSheetState(() {
-                            selectedPrimaryMuscle = result;
-
-                            if (selectedSecondaryMuscle ==
-                                result) {
-                              selectedSecondaryMuscle = 'Nenhum';
-                            }
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 12),
-                    _SelectableField(
-                      label: 'Músculo secundário',
-                      value: selectedSecondaryMuscle,
-                      onTap: () async {
-                        final result = await _openMusclePicker(
-                          context: context,
-                          title: 'Selecione o músculo secundário',
-                          options: ['Nenhum', ...muscles],
-                          selected: selectedSecondaryMuscle,
-                        );
-
-                        if (result != null) {
-                          setSheetState(() {
-                            selectedSecondaryMuscle = result;
-                          });
-                        }
-                      },
-                    ),
-                    const SizedBox(height: 18),
-                    Row(
-                      children: [
-                        Expanded(
-                          child: TextField(
-                            controller: setsController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Séries',
-                              filled: true,
-                              fillColor: const Color(0xFF1E1E1E),
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        Expanded(
-                          child: TextField(
-                            controller: repsController,
-                            keyboardType: TextInputType.number,
-                            decoration: InputDecoration(
-                              labelText: 'Repetições',
-                              filled: true,
-                              fillColor: const Color(0xFF1E1E1E),
-                              border: OutlineInputBorder(
-                                borderRadius:
-                                    BorderRadius.circular(14),
-                                borderSide: BorderSide.none,
-                              ),
-                            ),
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: FilledButton.icon(
-                        onPressed: () {
-                          final name = nameController.text.trim();
-
-                          if (name.isEmpty) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                  'Digite o nome do exercício.',
-                                ),
-                              ),
-                            );
-                            return;
-                          }
-
-                          final exercise = Exercise(
-                            id: DateTime.now()
-                                .microsecondsSinceEpoch
-                                .toString(),
-                            name: name,
-                            bodyPart: selectedBodyPart,
-                            primaryMuscle: selectedPrimaryMuscle,
-                            secondaryMuscle:
-                                selectedSecondaryMuscle,
-                            sets: int.tryParse(
-                                  setsController.text,
-                                ) ??
-                                3,
-                            reps: int.tryParse(
-                                  repsController.text,
-                                ) ??
-                                10,
-                          );
-
-                          widget.appState.addExercise(
-                            workoutId: widget.workout.id,
-                            exercise: exercise,
-                          );
-
-                          Navigator.pop(context);
-                        },
-                        style: FilledButton.styleFrom(
-                          backgroundColor: const Color(0xFFCCFF00),
-                          foregroundColor: Colors.black,
-                          shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(16),
-                          ),
-                        ),
-                        icon: const Icon(Icons.check),
-                        label: const Text(
-                          'SALVAR EXERCÍCIO',
-                          style: TextStyle(
-                            fontWeight: FontWeight.w900,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ],
+            ),
+            const SizedBox(height: 16),
+            const _SectionTitle('Nome'),
+            const SizedBox(height: 8),
+            TextField(
+              controller: nameController,
+              decoration: _inputDecoration('Ex: Supino reto'),
+            ),
+            const SizedBox(height: 18),
+            const _SectionTitle('Região do corpo'),
+            const SizedBox(height: 8),
+            Row(
+              children: [
+                Expanded(
+                  child: _BodyPartSelector(
+                    label: 'Superiores',
+                    selected: bodyPart == 'Superiores',
+                    onTap: () {
+                      setState(() {
+                        bodyPart = 'Superiores';
+                        primaryMuscle = upperMuscles.first;
+                        secondaryMuscle = 'Nenhum';
+                      });
+                    },
+                  ),
                 ),
-              ),
-            );
-          },
-        );
-      },
+                const SizedBox(width: 10),
+                Expanded(
+                  child: _BodyPartSelector(
+                    label: 'Inferiores',
+                    selected: bodyPart == 'Inferiores',
+                    onTap: () {
+                      setState(() {
+                        bodyPart = 'Inferiores';
+                        primaryMuscle = lowerMuscles.first;
+                        secondaryMuscle = 'Nenhum';
+                      });
+                    },
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 18),
+            _DropdownField(
+              label: 'Músculo primário',
+              value: primaryMuscle,
+              options: muscles,
+              onChanged: (value) {
+                setState(() {
+                  primaryMuscle = value;
+
+                  if (secondaryMuscle == value) {
+                    secondaryMuscle = 'Nenhum';
+                  }
+                });
+              },
+            ),
+            const SizedBox(height: 12),
+            _DropdownField(
+              label: 'Músculo secundário',
+              value: secondaryMuscle,
+              options: ['Nenhum', ...muscles],
+              onChanged: (value) {
+                setState(() => secondaryMuscle = value);
+              },
+            ),
+            const SizedBox(height: 18),
+            Row(
+              children: [
+                Expanded(
+                  child: TextField(
+                    controller: setsController,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        _inputDecoration('Séries'),
+                  ),
+                ),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: TextField(
+                    controller: repsController,
+                    keyboardType: TextInputType.number,
+                    decoration:
+                        _inputDecoration('Repetições'),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 20),
+            _PrimaryButton(
+              label: 'SALVAR EXERCÍCIO',
+              icon: Icons.check,
+              onTap: _saveExercise,
+            ),
+          ],
+        ),
+      ),
     );
   }
 
-  Future<String?> _openMusclePicker({
-    required BuildContext context,
-    required String title,
-    required List<String> options,
-    required String selected,
-  }) {
-    return showModalBottomSheet<String>(
-      context: context,
-      backgroundColor: const Color(0xFF141414),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      filled: true,
+      fillColor: const Color(0xFF1E1E1E),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
       ),
-      builder: (context) {
-        return SafeArea(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Padding(
-                padding: const EdgeInsets.all(20),
-                child: Text(
-                  title,
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
-              ),
-              Flexible(
-                child: ListView.builder(
-                  shrinkWrap: true,
-                  itemCount: options.length,
-                  itemBuilder: (context, index) {
-                    final option = options[index];
-                    final isSelected = option == selected;
+    );
+  }
 
-                    return ListTile(
-                      title: Text(
-                        option,
-                        style: TextStyle(
-                          fontWeight: isSelected
-                              ? FontWeight.w900
-                              : FontWeight.w500,
-                          color: isSelected
-                              ? const Color(0xFFCCFF00)
-                              : Colors.white,
-                        ),
-                      ),
-                      trailing: isSelected
-                          ? const Icon(
-                              Icons.check_circle,
-                              color: Color(0xFFCCFF00),
-                            )
-                          : null,
-                      onTap: () {
-                        Navigator.pop(context, option);
-                      },
-                    );
-                  },
-                ),
-              ),
-              const SizedBox(height: 12),
-            ],
+  void _saveExercise() {
+    final name = nameController.text.trim();
+
+    if (name.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Digite o nome do exercício.'),
+        ),
+      );
+      return;
+    }
+
+    final exercise = Exercise(
+      id: DateTime.now().microsecondsSinceEpoch.toString(),
+      name: name,
+      bodyPart: bodyPart,
+      primaryMuscle: primaryMuscle,
+      secondaryMuscle: secondaryMuscle,
+      sets: int.tryParse(setsController.text) ?? 3,
+      reps: int.tryParse(repsController.text) ?? 10,
+    );
+
+    widget.appState.addExercise(
+      workoutId: widget.workout.id,
+      exercise: exercise,
+    );
+
+    Navigator.pop(context);
+  }
+}
+
+class _DropdownField extends StatelessWidget {
+  final String label;
+  final String value;
+  final List<String> options;
+  final ValueChanged<String> onChanged;
+
+  const _DropdownField({
+    required this.label,
+    required this.value,
+    required this.options,
+    required this.onChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(
+          label.toUpperCase(),
+          style: const TextStyle(
+            fontSize: 11,
+            fontWeight: FontWeight.w700,
+            letterSpacing: 1,
+            color: Color(0xFF8A8A8A),
           ),
-        );
-      },
+        ),
+        const SizedBox(height: 8),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 12),
+          decoration: BoxDecoration(
+            color: const Color(0xFF1E1E1E),
+            borderRadius: BorderRadius.circular(14),
+          ),
+          child: DropdownButtonHideUnderline(
+            child: DropdownButton<String>(
+              value: value,
+              isExpanded: true,
+              dropdownColor: const Color(0xFF1E1E1E),
+              items: options.map((option) {
+                return DropdownMenuItem<String>(
+                  value: option,
+                  child: Text(option),
+                );
+              }).toList(),
+              onChanged: (selected) {
+                if (selected != null) {
+                  onChanged(selected);
+                }
+              },
+            ),
+          ),
+        ),
+      ],
     );
   }
 }
@@ -1289,62 +1106,6 @@ class _BodyPartSelector extends StatelessWidget {
             fontWeight: FontWeight.w900,
             letterSpacing: 0.5,
           ),
-        ),
-      ),
-    );
-  }
-}
-
-class _SelectableField extends StatelessWidget {
-  final String label;
-  final String value;
-  final VoidCallback onTap;
-
-  const _SelectableField({
-    required this.label,
-    required this.value,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: double.infinity,
-        padding: const EdgeInsets.all(16),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1E1E1E),
-          borderRadius: BorderRadius.circular(14),
-        ),
-        child: Row(
-          children: [
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label.toUpperCase(),
-                    style: const TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w700,
-                      letterSpacing: 1,
-                      color: Color(0xFF8A8A8A),
-                    ),
-                  ),
-                  const SizedBox(height: 4),
-                  Text(
-                    value,
-                    style: const TextStyle(
-                      fontSize: 16,
-                      fontWeight: FontWeight.w800,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-            const Icon(Icons.keyboard_arrow_down),
-          ],
         ),
       ),
     );
