@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'data/app_state.dart';
 import 'models/exercise.dart';
 import 'models/workout.dart';
+import 'models/workout_session.dart';
 import 'services/notification_service.dart';
 
 class WorkoutExecutionScreen extends StatefulWidget {
@@ -27,6 +28,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   final Map<String, List<TextEditingController>> _weightControllers = {};
   final Map<String, List<TextEditingController>> _repsControllers = {};
   final Map<String, List<bool>> _completedSets = {};
+  final List<ExerciseSetLog> _setLogs = [];
   Timer? _elapsedTimer;
   Timer? _restTimer;
   Duration _elapsed = Duration.zero;
@@ -53,11 +55,6 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         0,
         (total, sets) => total + sets.where((done) => done).length,
       );
-
-  int get _completedExercises => widget.workout.exercises.where((exercise) {
-        final sets = _completedSets[exercise.id];
-        return sets != null && sets.isNotEmpty && sets.every((done) => done);
-      }).length;
 
   bool get _workoutCompleted => _totalSets > 0 && _doneSets == _totalSets;
 
@@ -134,7 +131,6 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           const SizedBox(width: 4),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
                   'TREINO EM EXECUÇÃO',
@@ -595,9 +591,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                   borderRadius: BorderRadius.circular(8),
                 ),
               ),
-            );
-          }),
-        ),
+            ),
+          );
+        }),
         const SizedBox(height: 7),
         Text(
           '${_currentExerciseIndex + 1} DE ${widget.workout.exercises.length} EXERCÍCIOS',
@@ -754,6 +750,21 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       return;
     }
 
+    _setLogs.removeWhere(
+      (log) =>
+          log.exerciseId == exercise.id && log.setIndex == _currentSetIndex,
+    );
+    _setLogs.add(
+      ExerciseSetLog(
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+        primaryMuscle: exercise.primaryMuscle,
+        setIndex: _currentSetIndex,
+        weight: weight,
+        reps: reps,
+      ),
+    );
+
     setState(() {
       _completedSets[exercise.id]![_currentSetIndex] = true;
     });
@@ -806,6 +817,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   }
 
   void _reopenCurrentSet() {
+    _setLogs.removeWhere(
+      (log) =>
+          log.exerciseId == _currentExercise.id &&
+          log.setIndex == _currentSetIndex,
+    );
+
     setState(() {
       _completedSets[_currentExercise.id]![_currentSetIndex] = false;
     });
@@ -992,6 +1009,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       widget.appState.recordWorkoutCompletion(
         workout: widget.workout,
         totalSets: _totalSets,
+        duration: _elapsed,
+        setLogs: List.of(_setLogs),
       );
       Navigator.pop(context);
     }
