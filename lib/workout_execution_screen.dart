@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'data/app_state.dart';
 import 'models/exercise.dart';
 import 'models/workout.dart';
+import 'models/workout_session.dart';
 import 'services/notification_service.dart';
 
 class WorkoutExecutionScreen extends StatefulWidget {
@@ -24,11 +25,15 @@ class WorkoutExecutionScreen extends StatefulWidget {
 
 class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   static const int _restDuration = 60;
+
   final Map<String, List<TextEditingController>> _weightControllers = {};
   final Map<String, List<TextEditingController>> _repsControllers = {};
   final Map<String, List<bool>> _completedSets = {};
+  final List<ExerciseSetLog> _setLogs = [];
+
   Timer? _elapsedTimer;
   Timer? _restTimer;
+
   Duration _elapsed = Duration.zero;
   int _remainingSeconds = 0;
   int _currentExerciseIndex = 0;
@@ -41,8 +46,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   List<bool> get _currentExerciseSets =>
       _completedSets[_currentExercise.id]!;
 
-  bool get _currentSetCompleted =>
-      _currentExerciseSets[_currentSetIndex];
+  bool get _currentSetCompleted => _currentExerciseSets[_currentSetIndex];
 
   int get _totalSets => widget.workout.exercises.fold(
         0,
@@ -54,32 +58,32 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         (total, sets) => total + sets.where((done) => done).length,
       );
 
-  int get _completedExercises => widget.workout.exercises.where((exercise) {
-        final sets = _completedSets[exercise.id];
-        return sets != null && sets.isNotEmpty && sets.every((done) => done);
-      }).length;
-
   bool get _workoutCompleted => _totalSets > 0 && _doneSets == _totalSets;
 
   @override
   void initState() {
     super.initState();
+
     for (final exercise in widget.workout.exercises) {
       _weightControllers[exercise.id] = List.generate(
         exercise.sets,
         (_) => TextEditingController(),
       );
+
       _repsControllers[exercise.id] = List.generate(
         exercise.sets,
         (_) => TextEditingController(text: exercise.reps.toString()),
       );
+
       _completedSets[exercise.id] = List.filled(exercise.sets, false);
     }
+
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
       if (mounted && !_isPaused) {
         setState(() => _elapsed += const Duration(seconds: 1));
       }
     });
+
     NotificationService.requestPermissions().then((_) {
       if (mounted) _showActiveWorkoutNotification();
     });
@@ -134,7 +138,6 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           const SizedBox(width: 4),
           Expanded(
             child: Column(
-              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 const Text(
                   'TREINO EM EXECUÇÃO',
@@ -170,6 +173,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   Widget _buildWorkoutProgress() {
     final progress = _totalSets == 0 ? 0.0 : _doneSets / _totalSets;
+
     return Padding(
       padding: const EdgeInsets.fromLTRB(18, 0, 18, 8),
       child: Column(
@@ -379,8 +383,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
             child: _SetValue(
               label: 'REPETIÇÕES',
               child: TextField(
-                controller: _repsControllers[exercise.id]![
-                    _currentSetIndex],
+                controller: _repsControllers[exercise.id]![_currentSetIndex],
                 enabled: !_currentSetCompleted,
                 textAlign: TextAlign.center,
                 keyboardType: TextInputType.number,
@@ -397,8 +400,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
             child: _SetValue(
               label: 'CARGA (KG)',
               child: TextField(
-                controller: _weightControllers[exercise.id]![
-                    _currentSetIndex],
+                controller:
+                    _weightControllers[exercise.id]![_currentSetIndex],
                 enabled: !_currentSetCompleted,
                 textAlign: TextAlign.center,
                 keyboardType: const TextInputType.numberWithOptions(
@@ -493,6 +496,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   Widget _buildDoneButton() {
     final completed = _currentSetCompleted;
+
     return Semantics(
       button: true,
       label: completed ? 'Reabrir série' : 'Concluir série',
@@ -550,6 +554,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       children: List.generate(exercise.sets, (index) {
         final selected = index == _currentSetIndex;
         final completed = _completedSets[exercise.id]![index];
+
         return GestureDetector(
           onTap: () => setState(() => _currentSetIndex = index),
           child: AnimatedContainer(
@@ -576,10 +581,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       children: [
         Row(
           mainAxisAlignment: MainAxisAlignment.center,
-          children: List.generate(widget.workout.exercises.length, (index) {
+          children:
+              List.generate(widget.workout.exercises.length, (index) {
             final exercise = widget.workout.exercises[index];
             final done = _completedSets[exercise.id]!.every((value) => value);
             final selected = index == _currentExerciseIndex;
+
             return GestureDetector(
               onTap: () => _selectExercise(index),
               child: Container(
@@ -627,7 +634,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                 child: TextButton.icon(
                   onPressed: _togglePause,
                   icon: Icon(
-                    _isPaused ? Icons.play_arrow_rounded : Icons.pause_rounded,
+                    _isPaused
+                        ? Icons.play_arrow_rounded
+                        : Icons.pause_rounded,
                   ),
                   label: Text(_isPaused ? 'CONTINUAR' : 'PAUSAR'),
                   style: TextButton.styleFrom(
@@ -674,11 +683,13 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     final hours = duration.inHours;
     final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+
     return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
   }
 
   void _togglePause() {
     setState(() => _isPaused = !_isPaused);
+
     if (_isPaused) {
       NotificationService.showPausedWorkout(
         exerciseName: _currentExercise.name,
@@ -702,57 +713,87 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   void _selectExercise(int index) {
     if (index < 0 || index >= widget.workout.exercises.length) return;
+
     final exercise = widget.workout.exercises[index];
     final sets = _completedSets[exercise.id]!;
     final firstOpen = sets.indexWhere((done) => !done);
+
     setState(() {
       _currentExerciseIndex = index;
       _currentSetIndex = firstOpen >= 0 ? firstOpen : sets.length - 1;
     });
+
     if (!_isPaused && _remainingSeconds == 0) {
       _showActiveWorkoutNotification();
     }
   }
 
   void _copyCurrentWeightToAll(Exercise exercise) {
-    final current = _weightControllers[exercise.id]![
-        _currentSetIndex].text.trim();
+    final current =
+        _weightControllers[exercise.id]![_currentSetIndex].text.trim();
+
     if (current.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Informe a carga desta série primeiro.')),
       );
       return;
     }
+
     setState(() {
       final controllers = _weightControllers[exercise.id]!;
+
       for (var index = 0; index < controllers.length; index++) {
         if (!_completedSets[exercise.id]![index]) {
           controllers[index].text = current;
         }
       }
     });
+
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Carga de $current kg aplicada às séries abertas.')),
+      SnackBar(
+        content: Text('Carga de $current kg aplicada às séries abertas.'),
+      ),
     );
   }
 
   void _completeCurrentSet() {
     FocusScope.of(context).unfocus();
+
     final exercise = _currentExercise;
+
     final weight = double.tryParse(
       _weightControllers[exercise.id]![_currentSetIndex]
           .text
           .replaceAll(',', '.'),
     );
+
     final reps = int.tryParse(
       _repsControllers[exercise.id]![_currentSetIndex].text,
     );
+
     if (weight == null || weight < 0 || reps == null || reps <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Informe carga e repetições válidas.')),
       );
       return;
     }
+
+    _setLogs.removeWhere(
+      (log) =>
+          log.exerciseId == exercise.id &&
+          log.setIndex == _currentSetIndex,
+    );
+
+    _setLogs.add(
+      ExerciseSetLog(
+        exerciseId: exercise.id,
+        exerciseName: exercise.name,
+        primaryMuscle: exercise.primaryMuscle,
+        setIndex: _currentSetIndex,
+        weight: weight,
+        reps: reps,
+      ),
+    );
 
     setState(() {
       _completedSets[exercise.id]![_currentSetIndex] = true;
@@ -765,12 +806,14 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     }
 
     final next = _findNextOpenPosition();
+
     if (next != null) {
       setState(() {
         _currentExerciseIndex = next.exerciseIndex;
         _currentSetIndex = next.setIndex;
       });
     }
+
     _startRest();
   }
 
@@ -782,6 +825,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         set < widget.workout.exercises[currentExercise].sets;
         set++) {
       final exercise = widget.workout.exercises[currentExercise];
+
       if (!_completedSets[exercise.id]![set]) {
         return _WorkoutPosition(currentExercise, set);
       }
@@ -791,7 +835,9 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         exerciseIndex < widget.workout.exercises.length;
         exerciseIndex++) {
       final exercise = widget.workout.exercises[exerciseIndex];
-      final openSet = _completedSets[exercise.id]!.indexWhere((done) => !done);
+      final openSet =
+          _completedSets[exercise.id]!.indexWhere((done) => !done);
+
       if (openSet >= 0) return _WorkoutPosition(exerciseIndex, openSet);
     }
 
@@ -799,13 +845,22 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         exerciseIndex <= currentExercise;
         exerciseIndex++) {
       final exercise = widget.workout.exercises[exerciseIndex];
-      final openSet = _completedSets[exercise.id]!.indexWhere((done) => !done);
+      final openSet =
+          _completedSets[exercise.id]!.indexWhere((done) => !done);
+
       if (openSet >= 0) return _WorkoutPosition(exerciseIndex, openSet);
     }
+
     return null;
   }
 
   void _reopenCurrentSet() {
+    _setLogs.removeWhere(
+      (log) =>
+          log.exerciseId == _currentExercise.id &&
+          log.setIndex == _currentSetIndex,
+    );
+
     setState(() {
       _completedSets[_currentExercise.id]![_currentSetIndex] = false;
     });
@@ -813,20 +868,25 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   void _startRest() {
     _restTimer?.cancel();
+
     NotificationService.scheduleRestFinished();
     NotificationService.showRestProgress(
       exerciseName: _currentExercise.name,
     );
+
     setState(() => _remainingSeconds = _restDuration);
+
     _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
       if (!mounted) {
         timer.cancel();
         return;
       }
+
       if (_remainingSeconds <= 1) {
         timer.cancel();
         setState(() => _remainingSeconds = 0);
         _showActiveWorkoutNotification();
+
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
             content: Text('Descanso concluído. Prepare a próxima série!'),
@@ -841,8 +901,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _skipRest() {
     _restTimer?.cancel();
     NotificationService.cancelRestNotification();
+
     if (mounted) {
       setState(() => _remainingSeconds = 0);
+
       if (_isPaused) {
         NotificationService.showPausedWorkout(
           exerciseName: _currentExercise.name,
@@ -857,7 +919,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _showWorkoutCompletedMessage() {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: const Text('Treino concluído! Salve para registrar a sessão.'),
+        content:
+            const Text('Treino concluído! Salve para registrar a sessão.'),
         action: SnackBarAction(
           label: 'SALVAR',
           onPressed: _finishWorkout,
@@ -907,10 +970,11 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
                     final sets = _completedSets[exercise.id]!;
                     final completed = sets.where((done) => done).length;
                     final selected = index == _currentExerciseIndex;
+
                     return ListTile(
                       selected: selected,
-                      selectedTileColor:
-                          const Color(0xFFCCFF00).withValues(alpha: 0.06),
+                      selectedTileColor: const Color(0xFFCCFF00)
+                          .withValues(alpha: 0.06),
                       leading: CircleAvatar(
                         backgroundColor: sets.every((done) => done)
                             ? const Color(0xFFCCFF00)
@@ -959,6 +1023,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       );
       return;
     }
+
     final finish = await showDialog<bool>(
       context: context,
       builder: (dialogContext) => AlertDialog(
@@ -983,16 +1048,23 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         ],
       ),
     );
+
     if (finish == true && mounted) {
       _elapsedTimer?.cancel();
       _restTimer?.cancel();
+
       await NotificationService.cancelRestNotification();
       await NotificationService.cancelWorkoutNotification();
+
       if (!mounted) return;
+
       widget.appState.recordWorkoutCompletion(
         workout: widget.workout,
         totalSets: _totalSets,
+        duration: _elapsed,
+        setLogs: List.of(_setLogs),
       );
+
       Navigator.pop(context);
     }
   }
@@ -1022,10 +1094,12 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
         ],
       ),
     );
+
     if (leave == true && mounted) {
       _restTimer?.cancel();
       await NotificationService.cancelRestNotification();
       await NotificationService.cancelWorkoutNotification();
+
       if (mounted) Navigator.pop(context);
     }
   }
@@ -1034,18 +1108,22 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void dispose() {
     _elapsedTimer?.cancel();
     _restTimer?.cancel();
+
     NotificationService.cancelRestNotification();
     NotificationService.cancelWorkoutNotification();
+
     for (final controllers in _weightControllers.values) {
       for (final controller in controllers) {
         controller.dispose();
       }
     }
+
     for (final controllers in _repsControllers.values) {
       for (final controller in controllers) {
         controller.dispose();
       }
     }
+
     super.dispose();
   }
 }

@@ -8,6 +8,8 @@ import 'models/exercise.dart';
 import 'models/workout.dart';
 import 'models/workout_session.dart';
 
+import 'reports_screen.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await NotificationService.initialize();
@@ -346,37 +348,7 @@ class WorkoutsTab extends StatelessWidget {
   }
 }
 
-class ReportsTab extends StatelessWidget {
-  const ReportsTab({super.key});
 
-  @override
-  Widget build(BuildContext context) {
-    return const SafeArea(
-      child: Padding(
-        padding: EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              'EVOLUÇÃO',
-              style: TextStyle(
-                fontSize: 34,
-                fontWeight: FontWeight.w900,
-                letterSpacing: -1,
-              ),
-            ),
-            SizedBox(height: 20),
-            _EmptyCard(
-              title: 'Sem dados ainda',
-              subtitle:
-                  'Registre seus treinos para acompanhar cargas, volume e progresso.',
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
 
 class CreateWorkoutScreen extends StatefulWidget {
   final AppState appState;
