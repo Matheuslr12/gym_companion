@@ -10,9 +10,14 @@ import 'models/workout_session.dart';
 
 import 'reports_screen.dart';
 
+import 'data/app_state.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
   await NotificationService.initialize();
+  await AppState().load();
+
   runApp(const GymCompanionApp());
 }
 
