@@ -5,6 +5,12 @@ import '../models/workout.dart';
 import '../models/workout_session.dart';
 
 class AppState extends ChangeNotifier {
+  AppState._();
+
+  static final AppState _instance = AppState._();
+
+  factory AppState() => _instance;
+
   final List<Workout> _workouts = [];
   final List<WorkoutSession> _workoutSessions = [];
 
@@ -12,18 +18,25 @@ class AppState extends ChangeNotifier {
   List<WorkoutSession> get workoutSessions =>
       List.unmodifiable(_workoutSessions);
 
+  List<WorkoutSession> sessionsInRange(DateTime start, DateTime end) {
+    final sessions = _workoutSessions.where((session) {
+      return !session.completedAt.isBefore(start) &&
+          session.completedAt.isBefore(end);
+    }).toList();
+
+    sessions.sort((a, b) => b.completedAt.compareTo(a.completedAt));
+    return List.unmodifiable(sessions);
+  }
+
   List<WorkoutSession> get sessionsThisWeek {
     final now = DateTime.now();
     final today = DateTime(now.year, now.month, now.day);
     final startOfWeek = today.subtract(Duration(days: today.weekday - 1));
-    final endOfWeek = startOfWeek.add(const Duration(days: 7));
 
-    final sessions = _workoutSessions.where((session) {
-      return !session.completedAt.isBefore(startOfWeek) &&
-          session.completedAt.isBefore(endOfWeek);
-    }).toList();
-    sessions.sort((a, b) => b.completedAt.compareTo(a.completedAt));
-    return List.unmodifiable(sessions);
+    return sessionsInRange(
+      startOfWeek,
+      startOfWeek.add(const Duration(days: 7)),
+    );
   }
 
   int get setsCompletedThisWeek =>
