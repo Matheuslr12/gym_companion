@@ -36,6 +36,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen>
   Timer? _restTimer;
 
   Duration _elapsed = Duration.zero;
+  DateTime? _workoutStartTime;
   int _remainingSeconds = 0;
   DateTime? _restEndTime;
 
