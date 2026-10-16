@@ -10,7 +10,7 @@ import 'models/workout_session.dart';
 
 import 'reports_screen.dart';
 
-import 'data/app_state.dart';
+
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -181,7 +181,7 @@ class _HomeTabState extends State<HomeTab> {
                   : ListView.separated(
                       scrollDirection: Axis.horizontal,
                       itemCount: workouts.length,
-                      separatorBuilder: (_, __) => const SizedBox(width: 12),
+                      separatorBuilder: (_, _) => const SizedBox(width: 12),
                       itemBuilder: (context, index) {
                         final workout = workouts[index];
                         final selected = workout.id == selectedWorkoutId;
@@ -230,7 +230,7 @@ class _HomeTabState extends State<HomeTab> {
                     )
                   : ListView.separated(
                       itemCount: weeklySessions.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 10),
+                      separatorBuilder: (_, _) => const SizedBox(height: 10),
                       itemBuilder: (context, index) {
                         return _WeeklySessionCard(
                           session: weeklySessions[index],
