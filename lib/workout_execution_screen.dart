@@ -70,6 +70,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen>
 
     WidgetsBinding.instance.addObserver(this);
 
+    _workoutStartTime = DateTime.now();
+
     for (final exercise in widget.workout.exercises) {
       _weightControllers[exercise.id] = List.generate(
         exercise.sets,
@@ -85,8 +87,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen>
     }
 
     _elapsedTimer = Timer.periodic(const Duration(seconds: 1), (_) {
-      if (mounted && !_isPaused) {
-        setState(() => _elapsed += const Duration(seconds: 1));
+      if (mounted && !_isPaused && _workoutStartTime != null) {
+        setState(() {
+          _elapsed = DateTime.now().difference(_workoutStartTime!);
+        });
       }
     });
 
@@ -99,6 +103,7 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen>
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.resumed) {
       _updateRestTimerAfterReturn();
+      _updateElapsedTimerAfterReturn();
     }
   }
 
@@ -123,6 +128,16 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen>
       }
     } else if (mounted) {
       setState(() => _remainingSeconds = remaining);
+    }
+  }
+
+  void _updateElapsedTimerAfterReturn() {
+    if (_workoutStartTime == null) return;
+
+    if (mounted) {
+      setState(() {
+        _elapsed = DateTime.now().difference(_workoutStartTime!);
+      });
     }
   }
 
@@ -352,7 +367,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen>
       ),
     );
   }
-    Widget _buildExerciseStage(Exercise exercise) {
+
+  Widget _buildExerciseStage(Exercise exercise) {
     return Container(
       width: double.infinity,
       height: 130,
