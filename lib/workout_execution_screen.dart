@@ -23,7 +23,8 @@ class WorkoutExecutionScreen extends StatefulWidget {
       _WorkoutExecutionScreenState();
 }
 
-class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
+class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen>
+    with WidgetsBindingObserver {
   static const int _restDuration = 60;
 
   final Map<String, List<TextEditingController>> _weightControllers = {};
@@ -36,6 +37,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
 
   Duration _elapsed = Duration.zero;
   int _remainingSeconds = 0;
+  DateTime? _restEndTime;
+
   int _currentExerciseIndex = 0;
   int _currentSetIndex = 0;
   bool _isPaused = false;
@@ -64,6 +67,8 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void initState() {
     super.initState();
 
+    WidgetsBinding.instance.addObserver(this);
+
     for (final exercise in widget.workout.exercises) {
       _weightControllers[exercise.id] = List.generate(
         exercise.sets,
@@ -87,6 +92,37 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     NotificationService.requestPermissions().then((_) {
       if (mounted) _showActiveWorkoutNotification();
     });
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _updateRestTimerAfterReturn();
+    }
+  }
+
+  void _updateRestTimerAfterReturn() {
+    if (_restEndTime == null) return;
+
+    final remaining = _restEndTime!.difference(DateTime.now()).inSeconds;
+
+    if (remaining <= 0) {
+      _restTimer?.cancel();
+      _restEndTime = null;
+
+      if (mounted) {
+        setState(() => _remainingSeconds = 0);
+        _showActiveWorkoutNotification();
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Descanso concluído. Prepare a próxima série!'),
+          ),
+        );
+      }
+    } else if (mounted) {
+      setState(() => _remainingSeconds = remaining);
+    }
   }
 
   @override
@@ -869,6 +905,10 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
   void _startRest() {
     _restTimer?.cancel();
 
+    _restEndTime = DateTime.now().add(
+      const Duration(seconds: _restDuration),
+    );
+
     NotificationService.scheduleRestFinished();
     NotificationService.showRestProgress(
       exerciseName: _currentExercise.name,
@@ -877,13 +917,18 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
     setState(() => _remainingSeconds = _restDuration);
 
     _restTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
-      if (!mounted) {
+      if (!mounted || _restEndTime == null) {
         timer.cancel();
         return;
       }
 
-      if (_remainingSeconds <= 1) {
+      final remaining =
+          _restEndTime!.difference(DateTime.now()).inSeconds;
+
+      if (remaining <= 0) {
         timer.cancel();
+        _restEndTime = null;
+
         setState(() => _remainingSeconds = 0);
         _showActiveWorkoutNotification();
 
@@ -893,13 +938,15 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
           ),
         );
       } else {
-        setState(() => _remainingSeconds--);
+        setState(() => _remainingSeconds = remaining);
       }
     });
   }
 
   void _skipRest() {
     _restTimer?.cancel();
+    _restEndTime = null;
+
     NotificationService.cancelRestNotification();
 
     if (mounted) {
@@ -1103,73 +1150,3 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen> {
       if (mounted) Navigator.pop(context);
     }
   }
-
-  @override
-  void dispose() {
-    _elapsedTimer?.cancel();
-    _restTimer?.cancel();
-
-    NotificationService.cancelRestNotification();
-    NotificationService.cancelWorkoutNotification();
-
-    for (final controllers in _weightControllers.values) {
-      for (final controller in controllers) {
-        controller.dispose();
-      }
-    }
-
-    for (final controllers in _repsControllers.values) {
-      for (final controller in controllers) {
-        controller.dispose();
-      }
-    }
-
-    super.dispose();
-  }
-}
-
-class _SetValue extends StatelessWidget {
-  final String label;
-  final Widget child;
-
-  const _SetValue({required this.label, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          label,
-          style: const TextStyle(
-            color: Color(0xFF777777),
-            fontSize: 8,
-            fontWeight: FontWeight.w900,
-            letterSpacing: 0.7,
-          ),
-        ),
-        const SizedBox(height: 7),
-        SizedBox(height: 36, child: Center(child: child)),
-      ],
-    );
-  }
-}
-
-class _ValueDivider extends StatelessWidget {
-  const _ValueDivider();
-
-  @override
-  Widget build(BuildContext context) {
-    return Container(
-      width: 1,
-      height: 52,
-      color: const Color(0xFF292929),
-    );
-  }
-}
-
-class _WorkoutPosition {
-  final int exerciseIndex;
-  final int setIndex;
-
-  const _WorkoutPosition(this.exerciseIndex, this.setIndex);
-}
