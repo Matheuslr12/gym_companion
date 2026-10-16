@@ -1150,3 +1150,75 @@ class _WorkoutExecutionScreenState extends State<WorkoutExecutionScreen>
       if (mounted) Navigator.pop(context);
     }
   }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+
+    _elapsedTimer?.cancel();
+    _restTimer?.cancel();
+
+    NotificationService.cancelRestNotification();
+    NotificationService.cancelWorkoutNotification();
+
+    for (final controllers in _weightControllers.values) {
+      for (final controller in controllers) {
+        controller.dispose();
+      }
+    }
+
+    for (final controllers in _repsControllers.values) {
+      for (final controller in controllers) {
+        controller.dispose();
+      }
+    }
+
+    super.dispose();
+  }
+}
+
+class _SetValue extends StatelessWidget {
+  final String label;
+  final Widget child;
+
+  const _SetValue({required this.label, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      children: [
+        Text(
+          label,
+          style: const TextStyle(
+            color: Color(0xFF777777),
+            fontSize: 8,
+            fontWeight: FontWeight.w900,
+            letterSpacing: 0.7,
+          ),
+        ),
+        const SizedBox(height: 7),
+        SizedBox(height: 36, child: Center(child: child)),
+      ],
+    );
+  }
+}
+
+class _ValueDivider extends StatelessWidget {
+  const _ValueDivider();
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      width: 1,
+      height: 52,
+      color: const Color(0xFF292929),
+    );
+  }
+}
+
+class _WorkoutPosition {
+  final int exerciseIndex;
+  final int setIndex;
+
+  const _WorkoutPosition(this.exerciseIndex, this.setIndex);
+}
