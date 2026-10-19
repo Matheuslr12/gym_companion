@@ -11,7 +11,7 @@ class NotificationService {
   static Future<void> initialize() async {
     tz_data.initializeTimeZones();
     const settings = InitializationSettings(
-      android: AndroidInitializationSettings('ic_stat_fitness'),
+      android: AndroidInitializationSettings('@mipmap/ic_launcher'),
     );
     await _plugin.initialize(settings: settings);
   }
@@ -92,8 +92,6 @@ class NotificationService {
         ongoing: true,
         autoCancel: false,
         onlyAlertOnce: true,
-        playSound: false,
-        enableVibration: false,
         showWhen: true,
         when: startedAt.millisecondsSinceEpoch,
         usesChronometer: true,
@@ -150,6 +148,7 @@ class NotificationService {
     final hours = duration.inHours;
     final minutes = (duration.inMinutes % 60).toString().padLeft(2, '0');
     final seconds = (duration.inSeconds % 60).toString().padLeft(2, '0');
+
     return hours > 0 ? '$hours:$minutes:$seconds' : '$minutes:$seconds';
   }
 }
